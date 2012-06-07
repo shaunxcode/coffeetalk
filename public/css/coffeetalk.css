@@ -7,6 +7,10 @@
 .IDE > ul li:first-child {
   margin-left: 5px;
 }
+.IDE .drag-handle {
+  height: 5px;
+  background: #ccc;
+}
 .popover-inner {
   width: 180px;
 }
@@ -17,7 +21,6 @@
   border-radius: 3px;
 }
 .browser {
-  border-bottom: 1px solid #333;
   background: #fefefe;
   overflow: hidden;
   padding: 10px;
@@ -26,31 +29,31 @@
 }
 .browser .packageList,
 .browser .classList,
-.browser .methodList {
+.browser .slotList {
   float: left;
   height: 90%;
 }
 .browser .packageList .buttons,
 .browser .classList .buttons,
-.browser .methodList .buttons {
+.browser .slotList .buttons {
   margin-bottom: 5px;
 }
 .browser .packageList .buttons .btn,
 .browser .classList .buttons .btn,
-.browser .methodList .buttons .btn {
+.browser .slotList .buttons .btn {
   margin-right: 5px;
 }
 .browser .packageList h2,
 .browser .classList h2,
-.browser .methodList h2 {
+.browser .slotList h2 {
   line-height: 33px;
 }
 .browser .packageList > ul,
 .browser .classList > ul,
-.browser .methodList > ul,
+.browser .slotList > ul,
 .browser .packageList .tab-content > ul,
 .browser .classList .tab-content > ul,
-.browser .methodList .tab-content > ul {
+.browser .slotList .tab-content > ul {
   min-width: 150px;
   margin: 0;
   height: 100%;
@@ -61,10 +64,10 @@
 }
 .browser .packageList > ul li,
 .browser .classList > ul li,
-.browser .methodList > ul li,
+.browser .slotList > ul li,
 .browser .packageList .tab-content > ul li,
 .browser .classList .tab-content > ul li,
-.browser .methodList .tab-content > ul li {
+.browser .slotList .tab-content > ul li {
   cursor: pointer;
   margin: 0;
   padding: 5px;
@@ -72,20 +75,20 @@
 }
 .browser .packageList > ul li.protocol,
 .browser .classList > ul li.protocol,
-.browser .methodList > ul li.protocol,
+.browser .slotList > ul li.protocol,
 .browser .packageList .tab-content > ul li.protocol,
 .browser .classList .tab-content > ul li.protocol,
-.browser .methodList .tab-content > ul li.protocol {
+.browser .slotList .tab-content > ul li.protocol {
   font-weight: bold;
   cursor: default;
   padding-left: 5px;
 }
 .browser .packageList > ul li.active,
 .browser .classList > ul li.active,
-.browser .methodList > ul li.active,
+.browser .slotList > ul li.active,
 .browser .packageList .tab-content > ul li.active,
 .browser .classList .tab-content > ul li.active,
-.browser .methodList .tab-content > ul li.active {
+.browser .slotList .tab-content > ul li.active {
   background: #0000ff;
   color: #fff;
 }
@@ -102,43 +105,57 @@
 .browser .classList li {
   padding-left: 1em;
 }
-.browser .methodList .tabbable {
+.browser .slotList .tabbable {
   height: 100%;
 }
-.browser .methodList .tab-content {
+.browser .slotList .tab-content {
   background: #fff;
   height: 85%;
   margin-right: 10px;
   border: 1px solid #ccc;
   border-bottom: 0;
 }
-.browser .methodList .nav-tabs {
+.browser .slotList .nav-tabs {
   margin-right: 10px;
 }
-.browser .methodList .nav-tabs a {
+.browser .slotList .nav-tabs a {
   cursor: pointer;
 }
 .browser pre.output {
   border-radius: 0;
   float: right;
   width: 500px;
-  height: 100%;
   margin-left: 10px;
   overflow: auto;
+  margin-bottom: 10px;
 }
-.browser .methodEditor {
+.browser .slotEditor {
   height: 94%;
 }
-.browser .methodEditor pre.output.error {
+.browser .slotEditor pre.output.error {
   border: 1px solid #ff0000;
 }
-.browser .methodEditor pre.output.collapsed {
+.browser .slotEditor pre.output.collapsed {
   width: 0px;
   color: whiteSmoke;
   overflow: hidden;
 }
-.browser .methodEditor .CodeMirror-scroll {
+.browser .slotEditor .buttons {
+  margin-bottom: 5px;
+}
+.browser .slotEditor .buttons .btn {
+  margin-right: 5px;
+}
+.browser .slotEditor .CodeMirror-scroll {
   border: 1px solid #ccc;
+}
+.browser .slotEditor input.slotName {
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  font-size: 13px;
+  padding: 4px;
+  line-height: 18px;
+  margin-right: 5px;
 }
 pre.TODO {
   background: #fefefe;

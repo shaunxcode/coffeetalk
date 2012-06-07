@@ -39,23 +39,23 @@
 	<body>
 		<pre class="TODO">
 TODO
-display description of class/methods 
+display description of class/slots 
 collapse browser
 resize browser
-generalized json editor (for editing class/method definitions)
+generalized json editor (for editing class/slot definitions)
 edit instance/class variables
 rename class
-rename method
+rename slot
 represent class hierarchy via indentation
 collapse output pane so it is just red/green bar by click it once
 add REPL for messing around/testing
-grab all methods in "test" protocol and show in QUnit tab
+grab all slots in "test" protocol and show in QUnit tab
 implicit versioning (only when "save" is pressed?)
 make package, extends etc. be autocomplete fields
-"used by" dropdown to show where ever else this method is called
-"uses" dropdown to show quick jump to methods used by this method
+"used by" dropdown to show where ever else this slot is called
+"uses" dropdown to show quick jump to slots used by this slot
 clickable text nodes to jump straight to definitions
-draggable methods/classes out to workspace w/ mini map
+draggable slots/classes out to workspace w/ mini map
 port backbone over
 class importer that attempts to create coffee mop structure from class file
 multiple browser instance tabs ala amber js</pre>
@@ -135,7 +135,7 @@ multiple browser instance tabs ala amber js</pre>
 			<label><input class="showTestClasses" type="checkbox"> Show Test classes</label> 
 		</div>
 		
-		<div id="methodListSettings">
+		<div id="slotListSettings">
 			<label><input class="groupByProtocol" type="checkbox"> Group by protocol</label>
 			<label><input class="showInherited" type="checkbox"> Show Inherited</label> 
 		</div>

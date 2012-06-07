@@ -52,29 +52,71 @@ class CoffeeTalkPersistance
 	saveClass: -> "child responsibility"
 	saveSlot: -> "child responsibility"
 
+class CoffeeTalkFile
+
+	constructor: (name) ->
+		@name = name
+		@parts = name.replace(/\//g, '.').split('.')
+		@fs = require "fs"
+		@wrench = require "wrench"
+				
+	isClass: ->
+ 		@parts[@parts.length - 2] is "class" and @isJsonExt()
+	
+	isJsonExt: ->
+		@parts[@parts.length - 1] is "json"
+
+	readAsJson: ->
+		try 
+			console.log @name
+			console.log @fs.readFileSync @name, "UTF8"
+			return JSON.parse @fs.readFileSync @name, "UTF8"
+		catch e
+			return false
+			
+	asSlot: (slotDir, nameArray) ->
+		props = @readAsJson()
+		if not props then return false
+
+		props.body = @fs.readFileSync "#{@parts[0..-2].join "/"}.coffee", "UTF8"
+
+		new CoffeeTalkSlot props
+		
+	asClass: ->
+			classDef = @readAsJson()
+			console.log "DEF", classDef
+			if not classDef then return false
+
+			coffeeTalkClass = new CoffeeTalkClass classDef
+
+			slotDir = "#{@parts[0..-3].join "/"}/slots"
+
+			for slotFileName in @wrench.readdirSyncRecursive(slotDir)
+				slotFile = new CoffeeTalkFile "#{slotDir}/#{slotFileName}"
+				
+				if slotFile.isJsonExt()
+					newSlot = slotFile.asSlot()
+					if newSlot then coffeeTalkClass.slots.push newSlot
+
+			coffeeTalkClass
+			
 class CoffeeTalkPersistanceFlatFile extends CoffeeTalkPersistance
 	constructor: (props) ->
 		@wrench = require "wrench"
 		@fs = require "fs"
 		@classDir = props.classDir
-
+		
 	getClassList: ->
 		classes = []
 			
-		for file in @wrench.readdirSyncRecursive(@classDir)
-			parts = file.replace(/\//g, '.').split(".")
-			if parts[parts.length - 1] is "json" and parts[parts.length - 2] is "class"
-				coffeeTalkClass = new CoffeeTalkClass JSON.parse(@fs.readFileSync(@classDir + "/" + file, "UTF8"))
-				slotDir = @classDir + "/" + parts[0..-3].join("/") + "/slots"
-				for slotFile in @wrench.readdirSyncRecursive(slotDir)
-					slotParts = slotFile.replace(/\//g, '.').split('.')
-					if slotParts[slotParts.length - 1] is "json"
-						props = JSON.parse(@fs.readFileSync(slotDir + "/" + slotFile, "UTF8"))
-						props.body = @fs.readFileSync slotDir + "/" + slotParts[0..-2].join("/") + ".coffee", "UTF8"
-						coffeeTalkSlot = new CoffeeTalkSlot props
-						coffeeTalkClass.slots.push coffeeTalkSlot
-				classes.push coffeeTalkClass
-
+		for fileName in @wrench.readdirSyncRecursive(@classDir)
+			file = new CoffeeTalkFile "#{@classDir}/#{fileName}"
+			if file.isClass()
+				console.log "its a class"
+				newClass = file.asClass()
+				console.log newClass
+				if newClass then classes.push newClass
+					
 		classes
 
 	_getClassDir: (_class) ->
@@ -83,13 +125,18 @@ class CoffeeTalkPersistanceFlatFile extends CoffeeTalkPersistance
 	saveClass: (_class) ->
 		baseClassDir = @_getClassDir _class
 		@wrench.mkdirSyncRecursive "#{baseClassDir}slots"
-		@fs.writeFileSync "#{baseClassDir}class.json", JSON.stringify _class.toJSON 
+		classDef = _class.toJSON()
+		delete classDef.slots
+		@fs.writeFileSync "#{baseClassDir}class.json", JSON.stringify classDef
+		(new CoffeeTalkFile "#{baseClassDir}class.json").asClass()
 		
 	saveSlot: (_class, slot) ->
-		baseClassDir = @_getClassDir(_class) + "/slots/"
-		@fs.writeFileSync "#{baseClassDir}#{slot.name}.json", JSON.stringify _class.toJSON
-		@fs.writeFileSync "#{baseClassDir}#{slot.name}.coffee", slot.body
-
+		baseClassDir = @_getClassDir _class 
+		baseSlotDir = baseClassDir + "/slots/"
+		@fs.writeFileSync "#{baseSlotDir}#{slot.name}.json", JSON.stringify slot.toJSON()
+		@fs.writeFileSync "#{baseSlotDir}#{slot.name}.coffee", slot.body
+		(new CoffeeTalkFile "#{baseClassDir}class.json").asClass()
+		
 class CoffeeTalkServer
 	constructor: ->
 		@express = require "express"
@@ -121,6 +168,7 @@ class CoffeeTalkServer
 			socket.emit "classList", classes: @ctpFlatFile.getClassList()
 
 			socket.on 'saveClass', (data) =>
+				console.log "DATA", data
 				newClass = @ctpFlatFile.saveClass(new CoffeeTalkClass(data.class))
 				socket.emit "updateClass", newClass
 

@@ -3,10 +3,10 @@ class _Class extends Backbone.Model
 		slot for slot in @get("slots") when slot.type is type
 
 	getInstanceSlots: ->
-		@getSlotsByType "instance"
+		@getSlotsByType "Instance"
 		
 	getClassSlots: ->
-		@getSlotsByType "class"
+		@getSlotsByType "Class"
 
 class _Classes extends Backbone.Collection
 	model: _Class 
@@ -15,16 +15,16 @@ class BrowserSettings extends Backbone.Model
 	defaults:
 		activePackage: false
 		activeClass: false
-		activeMethod: false
+		activeSlot: false
 		groupClassesByParent: true
 		showTestClasses: false
-		groupMethodsByProtocol: true
-		showInheritedMethods: false
+		groupSlotsByProtocol: true
+		showInheritedSlots: false
 		collapsedOutput: false
 		
 	initialize: ->
 		@bind "change:activePackage", => @set activeClass: false
-		@bind "change:activeClass", => @set activeMethod: false
+		@bind "change:activeClass", => @set activeSlot: false
 		
 	toggle: (field) ->
 		@set field, not @get field
@@ -113,7 +113,7 @@ class _ClassList extends Backbone.View
 				package: @newPackage.val()
 				description: @newDescription.val()
 
-			window.socket.emit "saveClass", newClass
+			window.socket.emit "saveClass", class: newClass
 			@model.set "activePackage", @newPackage.val()
 			
 			@newClassModal.modal "hide"
@@ -193,9 +193,9 @@ class _ClassList extends Backbone.View
 		@model.set "activeClass", _class
 		@editButton.removeClass "disabled"
 
-class _MethodList extends Backbone.View
-	className: "methodList"
-	activeMethod: false
+class _SlotList extends Backbone.View
+	className: "slotList"
+	activeSlot: false
 	_class: false
 	
 	@SettingsForm = false
@@ -204,7 +204,7 @@ class _MethodList extends Backbone.View
 		@model.bind "change:activeClass", => @setActiveClass @model.get "activeClass"
 
 		if not @SettingsForm
-			@SettingsForm = $("#methodListSettings").remove().html()
+			@SettingsForm = $("#slotListSettings").remove().html()
 
 		@newSlotModal = $("#newSlotModal").modal show: false, keyboard: false
 		@newSlotInstanceOrClass = $("h3 .instanceOrClass", @newSlotModal)
@@ -230,7 +230,7 @@ class _MethodList extends Backbone.View
 			
 			window.socket.emit "saveSlot", class: @_class.toJSON(), slot: newSlot
 			@newSlotModal.modal "hide"
-			@openMethod newSlot
+			@openSlot newSlot
 			
 	currentType: ->
 		return if @instanceTab.hasClass("active") then "Instance" else "Class"
@@ -296,27 +296,28 @@ class _MethodList extends Backbone.View
 		@instanceSlotsUL.html ""
 		@classSlotsUL.html ""
 			
-	drawMethods: (ul, methods) ->
+	drawSlots: (ul, slots) ->
 		ul.html ""
-		for protocol, methodList of (_(methods).groupBy (c) -> c.protocol)
+		for protocol, slotList of (_(slots).groupBy (c) -> c.protocol)
 			$("<li />").text(if protocol is "" then "Unclassified" else protocol).addClass("protocol").appendTo(ul)
-			for method in methodList
-				do (method) =>
-					ul.append li = $("<li />").text(method.name).click => 
+			for slot in slotList
+				do (slot) =>
+					ul.append li = $("<li />").text(slot.name).click => 
+						console.log "CLICKED", slot
 						$("li", @tabContent).removeClass("active")
 						li.addClass "active"
-						@openMethod method
+						@openSlot slot
 					
-					if method.name is @model.get("activeMethod").name
+					if slot.name is @model.get("activeSlot").name
 						li.click()
 					
 	drawSlotLists: ->
 		instanceSlots = @_class.getInstanceSlots()
-		@drawMethods @instanceSlotsUL, instanceSlots
+		@drawSlots @instanceSlotsUL, instanceSlots
 		@instanceTabCount.text " #{instanceSlots.length}"
 		
 		classSlots =  @_class.getClassSlots()
-		@drawMethods @classSlotsUL, classSlots
+		@drawSlots @classSlotsUL, classSlots
 		@classTabCount.text " #{classSlots.length}"
 					
 	setActiveClass: (_class) ->
@@ -333,22 +334,53 @@ class _MethodList extends Backbone.View
 		@newSlotButton.removeClass("disabled")
 		@drawSlotLists()
 	
-	openMethod: (method) ->
-		@model.set "activeMethod", method
+	openSlot: (slot) ->
+		@model.set "activeSlot", slot
 
-class _MethodEditor extends Backbone.View
-	className: "methodEditor"
+class _SlotEditor extends Backbone.View
+	className: "slotEditor"
 	
 	initialize: ->
 		@model.bind "change:activePackage", => @clear()
 		@model.bind "change:activeClass", => @clear()
-		@model.bind "change:activeMethod", => 
-			if @model.get "activeMethod"
-				@edit @model.get "activeMethod"
+		@model.bind "change:activeSlot", => 
+			if @model.get "activeSlot"
+				@edit @model.get "activeSlot"
 			else
 				@clear()
 					
-	render: ->						
+	render: ->
+		buttons = $("<div />").appendTo(@$el).addClass("buttons")
+		@nameInput = $("<input />").addClass("slotName").appendTo buttons
+		@typeButton = $("<span />")
+			.text("Slot Type")
+			.addClass("btn btn-primary disabled")
+			.appendTo(buttons).click =>
+				if @typeButton.hasClass("disabled") then return
+
+		@protocolButton = $("<span />")
+			.text("Protocol")
+			.addClass("btn btn-primary disabled")
+			.appendTo(buttons).click =>
+				if @typeButton.hasClass("disabled") then return
+				
+		@optionsButton = $("<span />")
+			.addClass("btn btn-primary")
+			.html($("<i />").addClass("icon-cog icon-white"))
+			.appendTo(buttons)
+			.popover(
+				title: false
+				trigger: "manual"
+				placement: "bottom"
+				content: =>
+					$('.popover').remove()
+					@SettingsForm)
+			.click (e) =>
+				e.stopPropagation()
+				@optionsButton.popover "show"
+				
+
+		
 		@output = $("<pre />").addClass("output").appendTo @$el
 		@output.on "dblclick", => 
 			
@@ -363,20 +395,22 @@ class _MethodEditor extends Backbone.View
 			theme: "cobalt"
 			gutter: true
 			lineNumbers: true
-			indentWithTabs: true
+			indentWithTabs: false
 			onChange: =>
 				if @editor.getValue().trim().length is 0 then return
 				
 				try
-					methodSig =  'method = '
-					compiled = CoffeeScript.compile methodSig + @editor.getValue(), bare: true
+					slotSig =  'slot = '
+					compiled = CoffeeScript.compile slotSig + @editor.getValue(), bare: true
 					#we want to ignore the first var declaration as it is hack to allow super compilation to not assplode
-					@output.text compiled.split("\n")[1..-1].join("\n").replace(methodSig, '').trim()
+					@output.text compiled.split("\n")[1..-1].join("\n").replace(slotSig, '').trim()
 					@output.removeClass "error"
 					
 					#commit to server
-					@model.get("activeMethod").body = @editor.getValue()
-					socket.emit 'saveMethod', @model.get("activeMethod")
+					activeSlot = @model.get "activeSlot"
+					if activeSlot.body isnt @editor.getValue()
+						activeSlot.body = @editor.getValue()
+						socket.emit 'saveSlot', class: @model.get("activeClass"), slot: activeSlot
 				catch e
 					compiled = false
 					@output.text e.message.trim()
@@ -384,10 +418,10 @@ class _MethodEditor extends Backbone.View
 
 		this
 
-	edit: (method) ->
+	edit: (slot) ->
 		@output.text ""
 		@editor.setOption "readOnly", false
-		@editor.setValue method.body
+		@editor.setValue slot.body
 		
 	clear: ->
 		@output.text ""
@@ -399,9 +433,8 @@ class Browser extends Backbone.View
 	initialize: (options) ->
 		@settings = options.settings
 		
-		@options.parent.on "resize", (newSize) =>
-			@$el.css 'height', newSize
-
+		@options.parent.on "resize", (newSize) => @setHeights newSize
+			
 		window.settings = @settings
 		
 		@packageListView = new _PackageList collection: @collection, browser: this, model: @settings
@@ -410,13 +443,22 @@ class Browser extends Backbone.View
 		@classListView = new _ClassList collection: @collection, browser: this, model: @settings
 		@classListView.render().$el.appendTo @$el
 
-		@methodListView = new _MethodList browser: this, model: @settings
-		@methodListView.render().$el.appendTo @$el
+		@slotListView = new _SlotList browser: this, model: @settings
+		@slotListView.render().$el.appendTo @$el
 	
-		@methodEditor = new _MethodEditor model: @settings
-		@methodEditor.$el.appendTo(@$el)
-		@methodEditor.render()
+		@slotEditor = new _SlotEditor model: @settings
+		@slotEditor.$el.appendTo(@$el)
+		@slotEditor.render()
 
+	setHeights: (newSize) ->
+		@$el.css 'height', newSize
+		newHeight = newSize - 35
+		@packageListView.$el.css "height", newHeight
+		@classListView.$el.css "height", newHeight
+		@slotListView.$el.css "height", newHeight
+		$(@slotEditor.editor.getScrollerElement()).css "height", newHeight
+		@slotEditor.editor.refresh()
+		
 class REPL extends Backbone.View
 	className: "REPL"
 		
@@ -438,7 +480,10 @@ class IDE extends Backbone.View
 	initialize: ->
 		@$el.append @navTabs = $("<ul />").addClass("nav nav-tabs")
 		@$el.append @tabContent = $("<div />").addClass("tab-content")
+		@$el.append @dragHandle = $("<div />").addClass("drag-handle")
+		
 		@$el.draggable
+			handle: ".drag-handle"
 			axis: "y"
 			start: =>
 				@startHeight = @tabContent.height()

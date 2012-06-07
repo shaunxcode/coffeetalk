@@ -1,2 +1,0 @@
-(enemy) ->
-	@issueAttack enemy

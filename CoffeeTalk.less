@@ -6,19 +6,23 @@
 			margin-left: 5px;
 		}
 	}
+	
+	.drag-handle { 
+		height: 5px;
+		background: #ccc;
+	}
 }
 .popover-inner { width: 180px; }
 .popover-inner h3 { display: none; }
 .popover-content { border-radius: 3px; }
 
 .browser { 
-	border-bottom: 1px solid #333;
 	background: #fefefe;
 	overflow: hidden; 
 	padding: 10px;
 	height: 300px;
 	
-	.packageList, .classList, .methodList {
+	.packageList, .classList, .slotList {
 		float: left; 
 		height: 90%;
 		.buttons {
@@ -77,7 +81,7 @@
 		}
 	}
 	
-	.methodList { 
+	.slotList { 
 		.tabbable { 
 			height: 100%;
 		}
@@ -99,13 +103,13 @@
 	pre.output { 
 		border-radius: 0;
 		float: right; 
-		width: 500px; 
-		height: 100%; 
+		width: 500px;
 		margin-left: 10px; 
 		overflow: auto; 
+		margin-bottom: 10px;
 	}
 	
-	.methodEditor { 
+	.slotEditor { 
 		height: 94%; 
 		pre.output.error {
 			border: 1px solid #ff0000;
@@ -117,9 +121,23 @@
 			overflow: hidden;
 		}
 	
+		.buttons {
+			margin-bottom: 5px;
+			.btn { margin-right: 5px;}
+		}
+		
 		.CodeMirror-scroll {
 			//background: #fff;
 			border: 1px solid #ccc;
+		}
+		
+		input.slotName {
+			border: 1px solid #ccc;
+			border-radius: 3px;
+			font-size: 13px;
+			padding: 4px;
+			line-height: 18px;
+			margin-right: 5px;
 		}
 	}
 	z-index: 999;
