@@ -1,5 +1,5 @@
 {
-  "name": "coffee-talk",
+  "name": "coffeetalk",
   "preferGlobal": "true",
   "version": "0.0.1",
   "author": "shaunxcode <shaunxcode@gmail.com",
@@ -11,12 +11,12 @@
     } 
   ],
   "bin": {
-    "coffee-talk-server": "./coffee-talk-server"
+    "coffeetalk-server": "./coffeetalk-server"
   },
   "main": "./CoffeeTalk.coffee",
   "repository": {
     "type": "git",
-    "url": "https://github.com/shaunxcode/coffee-talk.git"
+    "url": "https://github.com/shaunxcode/coffeetalk.git"
   },
   "keywords": [
     "coffeescript",
