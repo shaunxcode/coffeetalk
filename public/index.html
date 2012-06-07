@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>CoffeeTalk</title>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<link rel="stylesheet" href="css/bootstrap.min.css" />
+		<link rel="stylesheet" href="lib/smoothness/jquery-ui-1.8.20.custom.css" />
+		<link rel="stylesheet" href="lib/codeMirror/lib/codemirror.css" />
+		<link rel="stylesheet" href="lib/codeMirror/theme/night.css" />
+		<link rel="stylesheet" href="lib/codeMirror/theme/cobalt.css" />
+		<link rel="stylesheet" href="css/coffeetalk.css" />
+		
+		<!-- Le styles -->
+		<!-- Le HTML5 shim, for IE6-8 support of HTML5 elements -->
+		<!--[if lt IE 9]>
+		<script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+		<![endif]-->
+
+		<script src="/socket.io/socket.io.js"></script>
+		<script src="lib/jquery.js"></script>
+		<script src="lib/jquery-ui.js"></script>
+		<script src="lib/underscore.js"></script>
+		<script src="lib/backbone.js"></script>
+		<script src="lib/codeMirror/lib/codemirror.js"></script>
+		<script src="lib/codeMirror/coffee.js"></script>
+		<script src="css/bootstrap.min.js"></script>
+
+		<script src="lib/coffee-script.js"></script>
+		<script src="CoffeeTalkApp.js"></script>
+
+		<script>
+			$(function() { 
+				window.app = new CoffeeTalkApp();
+				app.init();
+			});
+		</script>
+	</head>
+	<body>
+		<pre class="TODO">
+TODO
+display description of class/methods 
+collapse browser
+resize browser
+generalized json editor (for editing class/method definitions)
+edit instance/class variables
+rename class
+rename method
+represent class hierarchy via indentation
+collapse output pane so it is just red/green bar by click it once
+add REPL for messing around/testing
+grab all methods in "test" protocol and show in QUnit tab
+implicit versioning (only when "save" is pressed?)
+make package, extends etc. be autocomplete fields
+"used by" dropdown to show where ever else this method is called
+"uses" dropdown to show quick jump to methods used by this method
+clickable text nodes to jump straight to definitions
+draggable methods/classes out to workspace w/ mini map
+port backbone over
+class importer that attempts to create coffee mop structure from class file
+multiple browser instance tabs ala amber js</pre>
+		<div class="modal hide fade" id="newClassModal">
+		  <div class="modal-header">
+		    <button type="button" class="close" data-dismiss="modal">×</button>
+		    <h3><span class="mode">New</span> Class</h3>
+		  </div>
+		  <div class="modal-body">
+				<form class="form-horizontal">
+					<div class="control-group">
+						<label class="control-label">Name</label>
+						<div class="controls">
+							<input name="name" type="text"/>
+						</div>
+					</div>
+					<div class="control-group">
+						<label class="control-label">Extends</label>
+						<div class="controls">
+							<input name="extends" type="text" />
+						</div>
+					</div>
+					<div class="control-group">
+						<label class="control-label">Package</label>
+						<div class="controls">
+							<input name="package" type="text"/>
+						</div>
+					</div>
+					<div class="control-group">
+						<label class="control-label">Description</label>
+						<div class="controls">
+							<textarea name="description"></textarea>
+						</div>
+					</div>
+				</form>
+		  </div>
+		  <div class="modal-footer">
+		    <a href="#" class="btn" data-dismiss="modal">Cancel</a>
+		    <a href="#" class="btn btn-primary">Create</a>
+		  </div>
+		</div>
+
+		<div class="modal hide fade" id="newSlotModal">
+		  <div class="modal-header">
+		    <button type="button" class="close" data-dismiss="modal">×</button>
+		    <h3>New <span class="instanceOrClass"></span> Slot For <span class="className"></span></h3>
+		  </div>
+		  <div class="modal-body">
+				<form class="form-horizontal">
+					<div class="control-group">
+						<label class="control-label">Name</label>
+						<div class="controls">
+							<input name="name" type="text"/>
+						</div>
+					</div>
+					<div class="control-group">
+						<label class="control-label">Protocol</label>
+						<div class="controls">
+							<input name="protocol" type="text"/>
+						</div>
+					</div>
+					<div class="control-group">
+						<label class="control-label">Description</label>
+						<div class="controls">
+							<textarea name="description"></textarea>
+						</div>
+					</div>
+				</form>
+		  </div>
+		  <div class="modal-footer">
+		    <a href="#" class="btn" data-dismiss="modal">Cancel</a>
+		    <a href="#" class="btn btn-primary">Create</a>
+		  </div>
+		</div>
+		<div id="classListSettings">
+			<label><input class="groupByParent" type="checkbox"> Group by parent class</label>
+			<label><input class="showTestClasses" type="checkbox"> Show Test classes</label> 
+		</div>
+		
+		<div id="methodListSettings">
+			<label><input class="groupByProtocol" type="checkbox"> Group by protocol</label>
+			<label><input class="showInherited" type="checkbox"> Show Inherited</label> 
+		</div>
+	</body>
+</html>

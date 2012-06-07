@@ -1,0 +1,132 @@
+.IDE { 
+	margin-top: 5px;
+	> ul {
+		margin-bottom: 0;
+		li:first-child { 
+			margin-left: 5px;
+		}
+	}
+}
+.popover-inner { width: 180px; }
+.popover-inner h3 { display: none; }
+.popover-content { border-radius: 3px; }
+
+.browser { 
+	border-bottom: 1px solid #333;
+	background: #fefefe;
+	overflow: hidden; 
+	padding: 10px;
+	height: 300px;
+	
+	.packageList, .classList, .methodList {
+		float: left; 
+		height: 90%;
+		.buttons {
+			margin-bottom: 5px;
+			.btn { margin-right: 5px;}
+		}
+	
+		h2 { line-height: 33px; }
+		
+		> ul, .tab-content > ul {
+			min-width: 150px;
+			margin: 0;
+			height: 100%;
+			background: #fff;
+			list-style-type: none;
+			padding: 0;
+
+			float: left;
+	
+			li {
+				cursor: pointer;
+				margin: 0;
+				padding: 5px;
+				padding-left: 1em;
+			}
+		
+			li.protocol { 
+				font-weight: bold; 
+				cursor: default;
+				padding-left: 5px;
+			}
+			
+			li.active {
+				background: #0000ff;
+				color: #fff;
+			}
+		}
+
+	}
+	
+	.packageList, .classList {
+		> ul { 
+			border: 1px solid #ccc;
+			margin-right: 10px; 
+		}
+	}
+	
+	.classList {
+		.parentGrouping { 
+			font-weight: bold;
+			cursor: default;
+			padding-left: 5px;
+		}
+		li { 
+			padding-left: 1em;
+		}
+	}
+	
+	.methodList { 
+		.tabbable { 
+			height: 100%;
+		}
+		
+		.tab-content { 
+			background: #fff;
+			height: 85%;
+			margin-right: 10px;
+			border: 1px solid #ccc;
+			border-bottom: 0;
+		}
+		
+		.nav-tabs { 
+			margin-right: 10px; 
+			a { cursor: pointer; }
+		}
+	}
+	
+	pre.output { 
+		border-radius: 0;
+		float: right; 
+		width: 500px; 
+		height: 100%; 
+		margin-left: 10px; 
+		overflow: auto; 
+	}
+	
+	.methodEditor { 
+		height: 94%; 
+		pre.output.error {
+			border: 1px solid #ff0000;
+		}
+		
+		pre.output.collapsed {
+			width: 0px;
+			color: whiteSmoke;
+			overflow: hidden;
+		}
+	
+		.CodeMirror-scroll {
+			//background: #fff;
+			border: 1px solid #ccc;
+		}
+	}
+	z-index: 999;
+}
+
+pre.TODO {
+	background: #fefefe;
+	border-top: 0;
+	border-radius: 0;
+}

@@ -1,0 +1,5 @@
+#!/usr/bin/env coffee
+
+CT = require "./CoffeeTalk"
+cts = new CT.CoffeeTalkServer
+cts.start()
