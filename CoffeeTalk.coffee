@@ -21,6 +21,7 @@ class CoffeeTalkClass
 			
 	toJSON: ->
 		{
+			id: @id
 			name: @name
 			extends: @extends
 			package: @package
@@ -41,6 +42,7 @@ class CoffeeTalkSlot
 
 	toJSON: ->
 		{
+			id: @id
 			name: @name
 			type: @type
 			version: @version

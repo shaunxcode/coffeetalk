@@ -27,7 +27,8 @@
     "express"   :  "*",
     "wrench" :  "*",
     "coffee-script" :  "*",
-    "socket.io"    :  "*"
+    "socket.io"    :  "*",
+    "optimist"  :   "*"
   },
 
   "license": "MIT"

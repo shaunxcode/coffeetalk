@@ -61,6 +61,9 @@
   list-style-type: none;
   padding: 0;
   float: left;
+  width: 100%;
+  overflow: auto;
+  overflow-x: none;
 }
 .browser .packageList > ul li,
 .browser .classList > ul li,

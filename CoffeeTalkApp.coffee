@@ -11,6 +11,9 @@ class _Class extends Backbone.Model
 class _Classes extends Backbone.Collection
 	model: _Class 
 
+	getByPackage: (pkg) ->
+		_class for _class in @models when _class.get("package") is pkg
+
 class BrowserSettings extends Backbone.Model
 	defaults:
 		activePackage: false
@@ -80,18 +83,20 @@ class _ClassList extends Backbone.View
 				@model.set "showTestClasses", @showTestClassesCheckBox.is(":checked")
 
 		@newClassModal = $("#newClassModal").modal show: false, keyboard: false
+		@newPackage = $("input[name=package]", @newClassModal)
+		@newNamespace = $("input[name=namespace]", @newClassModal)
 		@newName = $("input[name=name]", @newClassModal)
 		@newExtends = $("input[name=extends]", @newClassModal)
-		@newPackage = $("input[name=package]", @newClassModal)
 		@newDescription = $("textarea", @newClassModal)
 		@newMode = $(".mode", @newClassModal)
 		
 		@newClassModal.on "shown", =>
 			if @editing
 				@newMode.text "Edit"
+				@newPackage.val @model.get("activeClass").get "package"
+				@newNamespace.val @model.get("activeClass").get "namespace"
 				@newName.val @model.get("activeClass").get "name"
 				@newExtends.val @model.get("activeClass").get "extends"
-				@newPackage.val @model.get("activeClass").get "package"
 				@newDescription.val @model.get("activeClass").get "description"
 				@mainButton.text "Save"
 			else
@@ -108,9 +113,10 @@ class _ClassList extends Backbone.View
 				return
 				
 			newClass =
+				package: @newPackage.val()
+				namespace: @newNamespace.val()
 				name: @newName.val()
 				extends: @newExtends.val()
-				package: @newPackage.val()
 				description: @newDescription.val()
 
 			window.socket.emit "saveClass", class: newClass
@@ -522,6 +528,8 @@ class window.CoffeeTalkApp
 		$('body').click -> $('.popover').remove()
 		
 		classesCollection = new _Classes
+		window.classes = classesCollection
+
 		ide = new IDE
 		ide.$el.appendTo 'body'
 		ide.addTab "REPL", new REPL collection: classesCollection
