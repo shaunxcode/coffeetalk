@@ -351,7 +351,14 @@ class _SlotEditor extends Backbone.View
 					
 	render: ->
 		buttons = $("<div />").appendTo(@$el).addClass("buttons")
-		@nameInput = $("<input />").addClass("slotName").appendTo buttons
+
+		@nameInput = $("<input />")
+			.addClass("slotName")
+			.appendTo(buttons)
+			.keydown =>
+				if @model.get("activeSlot").name isnt @nameInput.val()
+					@saveSlot()
+				
 		@typeButton = $("<span />")
 			.text("Slot Type")
 			.addClass("btn btn-primary disabled")
@@ -407,10 +414,8 @@ class _SlotEditor extends Backbone.View
 					@output.removeClass "error"
 					
 					#commit to server
-					activeSlot = @model.get "activeSlot"
-					if activeSlot.body isnt @editor.getValue()
-						activeSlot.body = @editor.getValue()
-						socket.emit 'saveSlot', class: @model.get("activeClass"), slot: activeSlot
+					if @model.get("activeSlot").body isnt @editor.getValue()
+						@saveSlot()
 				catch e
 					compiled = false
 					@output.text e.message.trim()
@@ -418,15 +423,23 @@ class _SlotEditor extends Backbone.View
 
 		this
 
+	saveSlot: ->
+		activeSlot = @model.get("activeSlot")
+		activeSlot.body = @editor.getValue()
+		activeSlot.name = @nameInput.val()
+		socket.emit 'saveSlot', class: @model.get("activeClass"), slot: activeSlot
+			
 	edit: (slot) ->
 		@output.text ""
 		@editor.setOption "readOnly", false
 		@editor.setValue slot.body
+		@nameInput.val slot.name
 		
 	clear: ->
 		@output.text ""
 		@editor.setValue ""
 		@editor.setOption "readOnly", true
+		@nameInput.val ""
 		
 class Browser extends Backbone.View
 	className: "browser"

@@ -6,7 +6,8 @@ class CoffeeTalkClass
 		@namespace = props.namespace
 		@description = props.description
 		@slots = []
-		
+		@id = "#{@package}.#{@namespace}.#{@name}"
+
 	toClassString: ->
 		classString = "class #{if @namespace then "#{namespace}." else ""}#{@name}#{if @extends then " extends #{@extends}" else ""}\n"
 
@@ -36,7 +37,8 @@ class CoffeeTalkSlot
 		@protocol = props.protocol
 		@body = props.body
 		@description = props.description
-		
+		@id = "#{props.classId}.#{@name}"
+
 	toJSON: ->
 		{
 			name: @name
@@ -68,8 +70,6 @@ class CoffeeTalkFile
 
 	readAsJson: ->
 		try 
-			console.log @name
-			console.log @fs.readFileSync @name, "UTF8"
 			return JSON.parse @fs.readFileSync @name, "UTF8"
 		catch e
 			return false
@@ -84,7 +84,6 @@ class CoffeeTalkFile
 		
 	asClass: ->
 			classDef = @readAsJson()
-			console.log "DEF", classDef
 			if not classDef then return false
 
 			coffeeTalkClass = new CoffeeTalkClass classDef
@@ -112,9 +111,7 @@ class CoffeeTalkPersistanceFlatFile extends CoffeeTalkPersistance
 		for fileName in @wrench.readdirSyncRecursive(@classDir)
 			file = new CoffeeTalkFile "#{@classDir}/#{fileName}"
 			if file.isClass()
-				console.log "its a class"
 				newClass = file.asClass()
-				console.log newClass
 				if newClass then classes.push newClass
 					
 		classes
@@ -133,8 +130,9 @@ class CoffeeTalkPersistanceFlatFile extends CoffeeTalkPersistance
 	saveSlot: (_class, slot) ->
 		baseClassDir = @_getClassDir _class 
 		baseSlotDir = baseClassDir + "/slots/"
-		@fs.writeFileSync "#{baseSlotDir}#{slot.name}.json", JSON.stringify slot.toJSON()
 		@fs.writeFileSync "#{baseSlotDir}#{slot.name}.coffee", slot.body
+		delete slot.body
+		@fs.writeFileSync "#{baseSlotDir}#{slot.name}.json", JSON.stringify slot.toJSON()
 		(new CoffeeTalkFile "#{baseClassDir}class.json").asClass()
 		
 class CoffeeTalkServer
@@ -168,7 +166,6 @@ class CoffeeTalkServer
 			socket.emit "classList", classes: @ctpFlatFile.getClassList()
 
 			socket.on 'saveClass', (data) =>
-				console.log "DATA", data
 				newClass = @ctpFlatFile.saveClass(new CoffeeTalkClass(data.class))
 				socket.emit "updateClass", newClass
 

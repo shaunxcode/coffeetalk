@@ -534,7 +534,11 @@
       var buttons,
         _this = this;
       buttons = $("<div />").appendTo(this.$el).addClass("buttons");
-      this.nameInput = $("<input />").addClass("slotName").appendTo(buttons);
+      this.nameInput = $("<input />").addClass("slotName").appendTo(buttons).keydown(function() {
+        if (_this.model.get("activeSlot").name !== _this.nameInput.val()) {
+          return _this.saveSlot();
+        }
+      });
       this.typeButton = $("<span />").text("Slot Type").addClass("btn btn-primary disabled").appendTo(buttons).click(function() {
         if (_this.typeButton.hasClass("disabled")) {
 
@@ -573,7 +577,7 @@
         lineNumbers: true,
         indentWithTabs: false,
         onChange: function() {
-          var activeSlot, compiled, slotSig;
+          var compiled, slotSig;
           if (_this.editor.getValue().trim().length === 0) {
             return;
           }
@@ -584,13 +588,8 @@
             });
             _this.output.text(compiled.split("\n").slice(1).join("\n").replace(slotSig, '').trim());
             _this.output.removeClass("error");
-            activeSlot = _this.model.get("activeSlot");
-            if (activeSlot.body !== _this.editor.getValue()) {
-              activeSlot.body = _this.editor.getValue();
-              return socket.emit('saveSlot', {
-                "class": _this.model.get("activeClass"),
-                slot: activeSlot
-              });
+            if (_this.model.get("activeSlot").body !== _this.editor.getValue()) {
+              return _this.saveSlot();
             }
           } catch (e) {
             compiled = false;
@@ -602,16 +601,29 @@
       return this;
     };
 
+    _SlotEditor.prototype.saveSlot = function() {
+      var activeSlot;
+      activeSlot = this.model.get("activeSlot");
+      activeSlot.body = this.editor.getValue();
+      activeSlot.name = this.nameInput.val();
+      return socket.emit('saveSlot', {
+        "class": this.model.get("activeClass"),
+        slot: activeSlot
+      });
+    };
+
     _SlotEditor.prototype.edit = function(slot) {
       this.output.text("");
       this.editor.setOption("readOnly", false);
-      return this.editor.setValue(slot.body);
+      this.editor.setValue(slot.body);
+      return this.nameInput.val(slot.name);
     };
 
     _SlotEditor.prototype.clear = function() {
       this.output.text("");
       this.editor.setValue("");
-      return this.editor.setOption("readOnly", true);
+      this.editor.setOption("readOnly", true);
+      return this.nameInput.val("");
     };
 
     return _SlotEditor;
