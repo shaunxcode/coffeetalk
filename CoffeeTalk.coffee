@@ -3,7 +3,7 @@ class CoffeeTalkClass
 		@name = props.name
 		@extends = props.extends
 		@package = props.package
-		@namespace = props.namespace
+		@namespace = if props.namespace? and props.namespace.length then props.namespace else "GLOBAL"
 		@description = props.description
 		@slots = []
 		@id = "#{@package}.#{@namespace}.#{@name}"
@@ -38,7 +38,8 @@ class CoffeeTalkSlot
 		@protocol = props.protocol
 		@body = props.body
 		@description = props.description
-		@id = "#{props.classId}.#{@name}"
+		@classId = props.classId
+		@id = "#{@classId}.#{@name}"
 
 	toJSON: ->
 		{
@@ -57,6 +58,17 @@ class CoffeeTalkPersistance
 	saveSlot: -> "child responsibility"
 
 class CoffeeTalkFile
+	@getClassById: (id) ->
+		[pkg, nameSpace, className] = id.split '.'
+		name = [className]
+		if nameSpace isnt "GLOBAL" then name.unshift nameSpace
+		(new CoffeeTalkFile name.join('/') + "/class.json").asClass()
+
+	@getSlotById: (id) ->
+		[pkg, nameSpace, className, slotName] = id.split '.'
+		name = [className, "slots"]
+		if nameSpace isnt "GLOBAL" then name.unshift nameSpace
+		(new CoffeeTalkFile name.join('/') + "/#{slotName}.json").asSlot([pkg, nameSpace, className].join '.')
 
 	constructor: (name) ->
 		@name = name
@@ -72,15 +84,17 @@ class CoffeeTalkFile
 
 	readAsJson: ->
 		try 
-			return JSON.parse @fs.readFileSync @name, "UTF8"
+			return JSON.parse @fs.readFileSync "#{CoffeeTalkFile.classDir}/#{@name}", "UTF8"
 		catch e
+			console.log e
 			return false
 			
-	asSlot: (slotDir, nameArray) ->
+	asSlot: (classId) ->
 		props = @readAsJson()
 		if not props then return false
 
-		props.body = @fs.readFileSync "#{@parts[0..-2].join "/"}.coffee", "UTF8"
+		props.body = @fs.readFileSync "#{CoffeeTalkFile.classDir}/#{@parts[0..-2].join "/"}.coffee", "UTF8"
+		props.classId = classId
 
 		new CoffeeTalkSlot props
 		
@@ -92,11 +106,11 @@ class CoffeeTalkFile
 
 			slotDir = "#{@parts[0..-3].join "/"}/slots"
 
-			for slotFileName in @wrench.readdirSyncRecursive(slotDir)
+			for slotFileName in @wrench.readdirSyncRecursive("#{CoffeeTalkFile.classDir}/#{slotDir}")
 				slotFile = new CoffeeTalkFile "#{slotDir}/#{slotFileName}"
 				
 				if slotFile.isJsonExt()
-					newSlot = slotFile.asSlot()
+					newSlot = slotFile.asSlot(coffeeTalkClass.id)
 					if newSlot then coffeeTalkClass.slots.push newSlot
 
 			coffeeTalkClass
@@ -106,12 +120,13 @@ class CoffeeTalkPersistanceFlatFile extends CoffeeTalkPersistance
 		@wrench = require "wrench"
 		@fs = require "fs"
 		@classDir = props.classDir
-		
+		CoffeeTalkFile.classDir = @classDir
+
 	getClassList: ->
 		classes = []
 			
 		for fileName in @wrench.readdirSyncRecursive(@classDir)
-			file = new CoffeeTalkFile "#{@classDir}/#{fileName}"
+			file = new CoffeeTalkFile fileName
 			if file.isClass()
 				newClass = file.asClass()
 				if newClass then classes.push newClass
@@ -119,23 +134,70 @@ class CoffeeTalkPersistanceFlatFile extends CoffeeTalkPersistance
 		classes
 
 	_getClassDir: (_class) ->
-		"#{@classDir}/#{if _class.namespace then "#{_class.namespace}/" else ""}#{_class.name}/"
+		"#{@classDir}/#{if _class.namespace isnt "GLOBAL" then "#{_class.namespace}/" else ""}#{_class.name}/"
 
-	saveClass: (_class) ->
-		baseClassDir = @_getClassDir _class
-		@wrench.mkdirSyncRecursive "#{baseClassDir}slots"
-		classDef = _class.toJSON()
+	saveClass: (data) ->
+		if not data.namespace? or data.namespace.trim().length is 0 
+			data.namespace = "GLOBAL"
+
+		newClass = new CoffeeTalkClass data
+		newClassDir = @_getClassDir newClass
+
+		if data.id?
+			oldClass = CoffeeTalkFile.getClassById data.id
+			oldClassDir = @_getClassDir oldClass
+			if oldClassDir isnt newClassDir
+				wrench.rmdirSyncRecursive oldClassDir, true
+		else
+			@wrench.mkdirSyncRecursive "#{newClassDir}slots"
+
+		classDef = newClass.toJSON()
 		delete classDef.slots
-		@fs.writeFileSync "#{baseClassDir}class.json", JSON.stringify classDef
-		(new CoffeeTalkFile "#{baseClassDir}class.json").asClass()
-		
-	saveSlot: (_class, slot) ->
-		baseClassDir = @_getClassDir _class 
+		@fs.writeFileSync "#{newClassDir}class.json", JSON.stringify classDef
+		(new CoffeeTalkFile "#{newClassDir}class.json").asClass()
+
+	deleteClass: (data) ->
+		oldClass = CoffeeTalkFile.getClassById data.id
+		baseClassDir = @_getClassDir oldClass
+		@wrench.rmdirSyncRecursive baseClassDir, true
+		true
+
+	saveSlot: (data) ->
+		#first get old by id
+		if not data.id?
+			newSlot = new CoffeeTalkSlot data
+		else
+			oldSlot = CoffeeTalkFile.getSlotById data.id
+			data.classId = oldSlot.classId
+			newSlot = new CoffeeTalkSlot data
+
+		#build base dirs
+		baseClassDir = @_getClassDir CoffeeTalkFile.getClassById data.classId
 		baseSlotDir = baseClassDir + "/slots/"
-		@fs.writeFileSync "#{baseSlotDir}#{slot.name}.coffee", slot.body
-		delete slot.body
-		@fs.writeFileSync "#{baseSlotDir}#{slot.name}.json", JSON.stringify slot.toJSON()
-		(new CoffeeTalkFile "#{baseClassDir}class.json").asClass()
+
+		#if id is different than delete old first
+		if oldSlot? and oldSlot.id isnt newSlot.id
+			@fs.unlinkSync "#{baseSlotDir}#{oldSlot.name}.coffee"
+			@fs.unlinkSync "#{baseSlotDir}#{oldSlot.name}.json"
+
+		@fs.writeFileSync "#{baseSlotDir}#{newSlot.name}.coffee", newSlot.body
+		slotDef = newSlot.toJSON()
+		delete slotDef.body
+		@fs.writeFileSync "#{baseSlotDir}#{newSlot.name}.json", JSON.stringify slotDef
+		
+		newSlot
+
+	deleteSlot: (data) ->
+		oldSlot = CoffeeTalkFile.getSlotById data.id
+		
+		#build base dirs
+		baseClassDir = @_getClassDir CoffeeTalkFile.getClassById oldSlot.classId
+		baseSlotDir = baseClassDir + "/slots/"
+
+		@fs.unlinkSync "#{baseSlotDir}#{oldSlot.name}.coffee"
+		@fs.unlinkSync "#{baseSlotDir}#{oldSlot.name}.json"
+		true
+
 		
 class CoffeeTalkServer
 	constructor: ->
@@ -158,7 +220,7 @@ class CoffeeTalkServer
 	start: ->
 		app = @express.createServer()
 		io = @socketio.listen(app)
-		#io.set "log level", 1
+		io.set "log level", 1
 		app.listen @port
 
 		app.configure =>
@@ -167,17 +229,15 @@ class CoffeeTalkServer
 		io.sockets.on 'connection', (socket) => 
 			socket.emit "classList", classes: @ctpFlatFile.getClassList()
 
-			socket.on 'saveClass', (data) =>
-				newClass = @ctpFlatFile.saveClass(new CoffeeTalkClass(data.class))
-				socket.emit "updateClass", newClass
-
-			socket.on 'saveSlot', (data) =>
-				updatedClass = @ctpFlatFile.saveSlot(new CoffeeTalkClass(data.class), new CoffeeTalkSlot(data.slot))
-				socket.emit "updateClass", updatedClass
+			socket.on 'saveNode', (req) =>
+				method = if req.method in ["create", "update"] then "save" else req.method
+				responseData = @ctpFlatFile[method + req.type](req.data)
+				socket.emit "updateNode", 
+					method: req.method
+					type: req.type
+					data: responseData
+					reqID: req.reqID
 
 		console.log "go to http://localhost:#{@port}/"
-		
-exports.CoffeeTalkClass = CoffeeTalkClass
-exports.CoffeeTalkSlot = CoffeeTalkSlot
-exports.CoffeeTalkPersistanceFlatFile = CoffeeTalkPersistanceFlatFile
+
 exports.CoffeeTalkServer = CoffeeTalkServer

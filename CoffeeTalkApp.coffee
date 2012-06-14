@@ -1,18 +1,27 @@
 class _Class extends Backbone.Model
-	getSlotsByType: (type) ->
-		slot for slot in @get("slots") when slot.type is type
+	nodeType: "Class"
+
+	initialize: ->
+		@_slots = new Slots 
+		@_slots.add @get "slots"
 
 	getInstanceSlots: ->
-		@getSlotsByType "Instance"
+		@_slots.where type: "Instance"
 		
 	getClassSlots: ->
-		@getSlotsByType "Class"
+		@_slots.where type: "Class"
 
 class _Classes extends Backbone.Collection
 	model: _Class 
 
 	getByPackage: (pkg) ->
 		_class for _class in @models when _class.get("package") is pkg
+
+class Slot extends Backbone.Model
+	nodeType: "Slot"
+
+class Slots extends Backbone.Collection
+	model: Slot
 
 class BrowserSettings extends Backbone.Model
 	defaults:
@@ -111,16 +120,15 @@ class _ClassList extends Backbone.View
 			if @newName.val().trim().length is 0 
 				alert "Name is required"
 				return
-				
-			newClass =
+
+			@model.set "activePackage", @newPackage.val()
+
+			newClass = @collection.create
 				package: @newPackage.val()
 				namespace: @newNamespace.val()
 				name: @newName.val()
 				extends: @newExtends.val()
 				description: @newDescription.val()
-
-			window.socket.emit "saveClass", class: newClass
-			@model.set "activePackage", @newPackage.val()
 			
 			@newClassModal.modal "hide"
 
@@ -227,17 +235,18 @@ class _SlotList extends Backbone.View
 				alert "Name is required"
 				return
 				
-			newSlot = 
+			newSlot = @_class._slots.create
+				classId: @_class.get "id"
 				name: @newName.val()
 				protocol: @newProtocol.val()
 				description: @newDescription.val()
 				body: ''
 				type: @currentType()
-			
-			window.socket.emit "saveSlot", class: @_class.toJSON(), slot: newSlot
+
 			@newSlotModal.modal "hide"
 			@openSlot newSlot
-			
+			@drawSlotLists()
+
 	currentType: ->
 		return if @instanceTab.hasClass("active") then "Instance" else "Class"
 		
@@ -304,17 +313,27 @@ class _SlotList extends Backbone.View
 			
 	drawSlots: (ul, slots) ->
 		ul.html ""
-		for protocol, slotList of (_(slots).groupBy (c) -> c.protocol)
+		
+		sortedSlots = []
+		for protocol, slotList of (_(slots).groupBy (c) -> c.get("protocol"))
+			sortedSlots.push {protocol: protocol, slots: (_(slotList).sortBy (s) -> s.get "name")}
+
+		for grouping in _(sortedSlots).sortBy("protocol")
+			protocol = grouping.protocol
+			slotList = grouping.slots
+
 			$("<li />").text(if protocol is "" then "Unclassified" else protocol).addClass("protocol").appendTo(ul)
 			for slot in slotList
 				do (slot) =>
-					ul.append li = $("<li />").text(slot.name).click => 
-						console.log "CLICKED", slot
+					slot.on "change", => li.text slot.get "name"
+					slot.on "destroy", => li.remove()
+
+					ul.append li = $("<li />").text(slot.get "name").click => 
 						$("li", @tabContent).removeClass("active")
 						li.addClass "active"
 						@openSlot slot
 					
-					if slot.name is @model.get("activeSlot").name
+					if slot.get("name") is @model.get("activeSlot").get?("name")
 						li.click()
 					
 	drawSlotLists: ->
@@ -330,13 +349,15 @@ class _SlotList extends Backbone.View
 		#move this into model 
 		if @_class
 			@_class.off "change", @drawSlotLists, @
- 
+			@_class._slots.off "change", @drawSlotsList, @
+
 		@_class = _class
 		
 		if not @_class then return
 			
 		@_class.on "change", @drawSlotLists, @
-			
+		@_class._slots.on "add", @drawSlotLists, @
+
 		@newSlotButton.removeClass("disabled")
 		@drawSlotLists()
 	
@@ -361,8 +382,8 @@ class _SlotEditor extends Backbone.View
 		@nameInput = $("<input />")
 			.addClass("slotName")
 			.appendTo(buttons)
-			.keydown =>
-				if @model.get("activeSlot").name isnt @nameInput.val()
+			.keyup =>
+				if @slot.get("name") isnt @nameInput.val()
 					@saveSlot()
 				
 		@typeButton = $("<span />")
@@ -392,8 +413,17 @@ class _SlotEditor extends Backbone.View
 				e.stopPropagation()
 				@optionsButton.popover "show"
 				
+		@deleteButton = $("<span />")
+			.addClass("btn btn-danger disabled")
+			.html($("<i />").addClass("icon-remove icon-white"))
+			.appendTo(buttons)
+			.click =>
+				return if @deleteButton.hasClass "disabled"
 
-		
+				if confirm "Are you sure you want to delete #{@slot.get "name"}"
+					@slot.destroy()
+					@clear()
+
 		@output = $("<pre />").addClass("output").appendTo @$el
 		@output.on "dblclick", => 
 			
@@ -420,7 +450,7 @@ class _SlotEditor extends Backbone.View
 					@output.removeClass "error"
 					
 					#commit to server
-					if @model.get("activeSlot").body isnt @editor.getValue()
+					if @slot.get("body") isnt @editor.getValue()
 						@saveSlot()
 				catch e
 					compiled = false
@@ -430,22 +460,26 @@ class _SlotEditor extends Backbone.View
 		this
 
 	saveSlot: ->
-		activeSlot = @model.get("activeSlot")
-		activeSlot.body = @editor.getValue()
-		activeSlot.name = @nameInput.val()
-		socket.emit 'saveSlot', class: @model.get("activeClass"), slot: activeSlot
+		@slot.set "body", @editor.getValue()
+		@slot.set "name", @nameInput.val()
+		@slot.save()
 			
 	edit: (slot) ->
+		@slot = slot
 		@output.text ""
 		@editor.setOption "readOnly", false
-		@editor.setValue slot.body
-		@nameInput.val slot.name
-		
+		@editor.setValue @slot.get "body"
+		@deleteButton.removeClass "disabled"
+		@nameInput.val @slot.get "name"
+		@nameInput.removeAttr "disabled"
+
 	clear: ->
 		@output.text ""
 		@editor.setValue ""
 		@editor.setOption "readOnly", true
+		@deleteButton.addClass "disabled"
 		@nameInput.val ""
+		@nameInput.attr "disabled", true
 		
 class Browser extends Backbone.View
 	className: "browser"
@@ -482,7 +516,32 @@ class REPL extends Backbone.View
 	className: "REPL"
 		
 	render: ->
-		@$el.text "this is going to be a repl"
+		@replCol = $("<div />")
+			.addClass("replCol")
+			.appendTo(@$el)
+
+		@output = $("<pre />")
+			.addClass("output")
+			.appendTo(@replCol)
+
+		@input = $("<textarea />")
+			.addClass("input")
+			.appendTo(@replCol)
+
+		@sendButton = $("<span />")
+			.text("Send")
+			.addClass("btn btn-primary")
+			.appendTo(@replCol)
+			
+		@state = $("<textarea />")
+			.addClass("state pull-right")
+			.appendTo(@$el)
+
+		@env = $("<ul />")
+			.addClass("env pull-right")
+			.appendTo(@$el)
+
+
 		this
 
 class IDE extends Backbone.View
@@ -518,8 +577,45 @@ class Todo extends Backbone.View
 
 class window.CoffeeTalkApp
 	init: ->
-		window.socket = io.connect 'http://localhost'
-		
+		window.socket = socket = io.connect 'http://localhost'
+		cbQueueID = 0
+		cbQueue = {}
+
+		Backbone.sync = (method, model, options) ->
+			switch method
+				when "create", "update", "delete"
+					reqID = ++cbQueueID
+
+					socket.emit "saveNode", 
+						method: method
+						type: model.nodeType
+						data: model.toJSON()
+						reqID: reqID
+
+					cbQueue[reqID] = options.success
+					#register timeout for failure??
+
+		socket.on "updateNode", (response) ->
+			if response.reqID? and cbQueue[response.reqID]
+				cbQueue[response.reqID](if response.method is "delete" then true else response.data)
+				delete cbQueue[response.reqID]
+			else
+				switch response.type 
+					when "Class"
+						existing = classesCollection.where id: response.data.classId
+						if existing
+							existing[0].set response.data
+						else
+							classesCollection.add response.data
+					when "Slot"
+						slotClass = classesCollection.where id: response.data.classId
+						if slotClass
+							slot = slotClass[0]._slots.where id: response.data.id
+							if slot
+								slot[0].set response.data
+							else
+								slotClass[0]._slots.create response.data
+
 		#yuck and the yuck faces
 		$('body').on 'click', '.popover', (e) =>
 			e.stopPropagation()
@@ -536,11 +632,4 @@ class window.CoffeeTalkApp
 		ide.addTab "Browser", new Browser collection: classesCollection, settings: new BrowserSettings, parent: ide
 		ide.addTab "Todo", new Todo
 	
-		window.socket.on 'classList', (data) => classesCollection.reset data.classes
-		window.socket.on 'updateClass', (data) => 
-			existing = classesCollection.find (c) -> 
-				c.get("name") is data.name
-			if existing
-				existing.set data
-			else
-				classesCollection.add data
+		socket.on 'classList', (data) => classesCollection.reset data.classes

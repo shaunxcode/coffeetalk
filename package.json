@@ -1,7 +1,7 @@
 {
   "name": "coffeetalk",
   "preferGlobal": "true",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "author": "shaunxcode <shaunxcode@gmail.com",
   "description": "a smalltalk esque class browser for coffeescript",
   "contributors": [ 

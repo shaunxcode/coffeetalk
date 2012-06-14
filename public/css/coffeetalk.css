@@ -11,6 +11,24 @@
   height: 5px;
   background: #ccc;
 }
+.IDE .REPL .replCol {
+  width: 32%;
+  margin-right: 1%;
+  text-align: right;
+}
+.IDE .REPL .replCol .output {
+  width: 98%;
+}
+.IDE .REPL .replCol .input {
+  width: 100%;
+}
+.IDE .REPL .env,
+.IDE .REPL .state {
+  margin-right: 1%;
+  width: 32%;
+  border: 1px solid #ccc;
+  height: 100%;
+}
 .popover-inner {
   width: 180px;
 }
@@ -30,6 +48,7 @@
 .browser .packageList,
 .browser .classList,
 .browser .slotList {
+  margin-right: 10px;
   float: left;
   height: 90%;
 }
